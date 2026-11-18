@@ -1171,6 +1171,11 @@
     }
   });
   // Si fra til Amazon-fanen at appen er klar.
+  // Direkte lenker: …/#bibliotek og …/#favoritter
+  const HASH_VIEWS = { '#bibliotek': 'library', '#favoritter': 'favs', '#les': 'feed' };
+  const openFromHash = () => { if (HASH_VIEWS[location.hash]) showView(HASH_VIEWS[location.hash]); };
+  window.addEventListener('hashchange', openFromHash);
+  setTimeout(openFromHash, 0);
   if (location.hash === '#kindle') {
     try { if (window.opener) window.opener.postMessage({ type: 'lesebok-ready' }, '*'); } catch { /* ingen kontakt */ }
     history.replaceState(null, '', location.pathname);
