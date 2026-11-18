@@ -1,12 +1,12 @@
 // Service worker for v2: virker uten nett etter første besøk.
 // Cache-navnene har eget prefiks, så v1 og v2 ikke sletter hverandres filer.
 const PREFIX = 'kh2-';
-const CACHE = PREFIX + 'v31';
+const CACHE = PREFIX + 'v33';
 const FONTS = PREFIX + 'fonts';
 const COVERS = PREFIX + 'covers';
 const COVER_HOSTS = ['covers.openlibrary.org', 'books.google.com', 'books.googleusercontent.com'];
 const ASSETS = [
-  './', 'index.html', 'styles.css', 'app.js', 'parsers.js', 'kindle-sync.js', 'sample-clippings.txt', 'manifest.webmanifest',
+  './', 'index.html', 'styles.css', 'app.js', 'parsers.js', 'kindle-sync.js', 'lesebok-widget.js', 'sample-clippings.txt', 'manifest.webmanifest',
   'icons/icon.svg', 'icons/icon-192.png', 'icons/icon-512.png', 'icons/apple-touch-icon.png',
 ];
 

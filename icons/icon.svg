@@ -1,14 +1,27 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <!-- Lesebok: to papirkort på en valnøttbrun pult, med et stort anførselstegn -->
   <defs>
-    <radialGradient id="g" cx="88%" cy="6%" r="95%">
-      <stop offset="0" stop-color="#d98a5c"/>
-      <stop offset=".45" stop-color="#3a2a1f"/>
-      <stop offset="1" stop-color="#16110d"/>
-    </radialGradient>
+    <filter id="soft" x="-30%" y="-30%" width="160%" height="160%">
+      <feDropShadow dx="0" dy="14" stdDeviation="16" flood-color="#000" flood-opacity=".45"/>
+    </filter>
+    <filter id="grain">
+      <feTurbulence type="fractalNoise" baseFrequency=".9" numOctaves="3" stitchTiles="stitch"/>
+      <feColorMatrix values="0 0 0 0 .45  0 0 0 0 .33  0 0 0 0 .2  0 0 0 .08 0"/>
+      <feComposite in2="SourceGraphic" operator="in"/>
+    </filter>
   </defs>
-  <rect width="512" height="512" fill="url(#g)"/>
-  <rect x="116" y="96" width="280" height="320" rx="34" fill="none" stroke="#f1e9dc" stroke-opacity=".18" stroke-width="3"/>
-  <rect x="128" y="108" width="256" height="296" rx="24" fill="#fbf8f2"/>
-  <rect x="128" y="160" width="6" height="190" rx="3" fill="#c8643b"/>
-  <text x="256" y="318" text-anchor="middle" font-family="Georgia, 'Times New Roman', serif" font-size="230" fill="#1c1712">“</text>
+  <rect width="512" height="512" fill="#2a1f18"/>
+  <!-- kortet bak -->
+  <g transform="rotate(-7 256 270)" filter="url(#soft)">
+    <rect x="118" y="112" width="276" height="316" rx="26" fill="#d9c4a3"/>
+  </g>
+  <!-- kortet foran -->
+  <g transform="rotate(3 256 256)" filter="url(#soft)">
+    <rect x="118" y="98" width="276" height="316" rx="26" fill="#f3e7d3"/>
+    <rect x="118" y="98" width="276" height="316" rx="26" fill="#f3e7d3" filter="url(#grain)"/>
+    <text x="142" y="352" font-family="Georgia, 'Times New Roman', serif" font-size="260" fill="#c06a3e">“</text>
+    <rect x="152" y="278" width="200" height="13" rx="6.5" fill="#7a5e48" opacity=".8"/>
+    <rect x="152" y="308" width="172" height="13" rx="6.5" fill="#7a5e48" opacity=".8"/>
+    <rect x="152" y="338" width="112" height="13" rx="6.5" fill="#7a5e48" opacity=".5"/>
+  </g>
 </svg>

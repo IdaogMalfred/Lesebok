@@ -22,7 +22,7 @@
   <meta name="apple-mobile-web-app-title" content="Lesebok">
   <link rel="manifest" href="manifest.webmanifest">
   <link rel="icon" href="icons/icon.svg" type="image/svg+xml">
-  <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+  <link rel="apple-touch-icon" href="icons/apple-touch-icon.png?v=2">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,300..600;1,6..72,300..500&family=Caveat:wght@400..600&display=swap">
@@ -176,6 +176,21 @@
             <button class="ghost press" type="button" data-action="import">Gjenopprett</button>
           </div>
           <p class="fine">Sikkerhetskopien inneholder highlights, favoritter, endrede utsnitt og slettede highlights. Når du gjenoppretter, legges den til det som allerede finnes. Ingenting blir borte.</p>
+        </div></div>
+
+        <div class="shell sync widget-help"><div class="core">
+          <h3 class="sync-title">Dagens sitat som widget</h3>
+          <p>Få et nytt sitat på Hjem-skjermen hver dag, via den gratis appen Scriptable.</p>
+          <ol>
+            <li>Installer <i>Scriptable</i> fra App Store.</li>
+            <li>Trykk <i>Kopier widget-koden</i> under. Åpne Scriptable, trykk <i>+</i>, lim inn koden og kall skriptet <i>Lesebok</i>.</li>
+            <li>Trykk <i>Eksporter</i> under Sikkerhetskopi, velg <i>Arkiver i Filer</i>, og lagre fila i <i>iCloud Drive → Scriptable</i>.</li>
+            <li>Hold fingeren på Hjem-skjermen, trykk <i>+</i>, velg <i>Scriptable</i> og en størrelse. Hold så på widgeten, velg <i>Rediger widget</i> og velg skriptet <i>Lesebok</i>.</li>
+          </ol>
+          <div class="sync-actions">
+            <button class="bookmarklet press" type="button" data-action="copy-widget"><span data-icon="quote"></span>Kopier widget-koden</button>
+          </div>
+          <p class="fine">Skriv <i>favoritter</i> under «Parameter» i widget-innstillingene for å bare vise favorittene dine. Ta en ny sikkerhetskopi til iCloud Drive når du har fått nye highlights. Widgeten bruker alltid den nyeste.</p>
         </div></div>
 
         <div class="theme-pick" role="radiogroup" aria-label="Utseende">

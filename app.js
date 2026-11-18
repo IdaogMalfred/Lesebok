@@ -1066,6 +1066,7 @@
     else if (act === 'sample') loadSample();
     else if (act === 'copy-bookmarklet') copyBookmarklet();
     else if (act === 'export-backup') exportBackup();
+    else if (act === 'copy-widget') copyWidget();
     else if (act === 'restore') {
       const list = Object.values(deleted);
       if (!list.length) return;
@@ -1122,6 +1123,19 @@
 
   // ---------- Hent rett fra Kindle (bokmerke på Amazons notatbokside) ----------
   const APP_URL = location.origin + location.pathname.replace(/[^/]*$/, '');
+  // Widget-koden hentes på forhånd, så den kan kopieres med en gang du trykker (Safari krever det).
+  let widgetCode = '';
+  fetch('lesebok-widget.js').then((r) => r.text()).then((src) => { widgetCode = src.split('__APP_URL__').join(APP_URL); }).catch(() => {});
+  async function copyWidget() {
+    if (!widgetCode) return toast('Koden er ikke klar ennå. Prøv igjen om et øyeblikk.');
+    try {
+      await navigator.clipboard.writeText(widgetCode);
+      toast('Widget-koden er kopiert. Lim den inn i et nytt skript i Scriptable.');
+    } catch {
+      toast('Kunne ikke kopiere automatisk. Prøv igjen, eller kopier fra lesebok-widget.js.');
+    }
+  }
+
   let bookmarkletCode = '';
   fetch('kindle-sync.js').then((r) => r.text()).then((src) => {
     // Fjern kommentarer og innrykk, sett inn appens adresse, og pakk inn i void(...)
