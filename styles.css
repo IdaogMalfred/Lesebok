@@ -1,0 +1,906 @@
+/* =========================================================
+   Lesebok — v2
+   Retning: koselig · papirkort på en varm pult
+   ========================================================= */
+
+:root {
+  color-scheme: light;
+
+  /* Papir og blekk */
+  --bg: #f2ece1;
+  --bg-deep: #e9e1d2;
+  --paper: #fbf8f2;
+  --ink: #1c1712;
+  --ink-2: #4b4137;
+  --muted: #8a7d6d;
+  --hair: rgba(70, 48, 22, 0.09);
+  --hair-strong: rgba(70, 48, 22, 0.16);
+  --shell: rgba(70, 48, 22, 0.035);
+  --inset: inset 0 1px 0 rgba(255, 255, 255, 0.85);
+  --float: 0 1px 1px rgba(60, 38, 14, 0.04), 0 24px 48px -28px rgba(60, 38, 14, 0.28);
+  --glass: rgba(251, 248, 242, 0.72);
+  --heart: #d23c55;
+  --heart-wash: rgba(210, 60, 85, 0.1);
+  --danger: #a8341f;
+  --grain-opacity: 0.07;
+  --grain-blend: multiply;
+
+  /* Bokfarge (settes per kort via --hue) */
+  --tint-s: 46%;
+  --tint-l: 40%;
+  --orb: 0.22;
+
+  /* Typografi */
+  --serif: "Newsreader", "New York", "Iowan Old Style", ui-serif, Georgia, serif;
+  --sans: "Geist", -apple-system, BlinkMacSystemFont, "SF Pro Text", system-ui, sans-serif;
+  --mono: "Geist Mono", ui-monospace, "SF Mono", Menlo, monospace;
+
+  /* Bevegelse */
+  --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-move: cubic-bezier(0.25, 1, 0.5, 1);
+  --ease-drawer: cubic-bezier(0.32, 0.72, 0, 1);
+
+  /* Geometri */
+  --r-shell: 30px;
+  --r-pad: 6px;
+  --top-h: 48px;
+  --tab-h: 62px;
+  --safe-t: env(safe-area-inset-top);
+  --safe-b: env(safe-area-inset-bottom);
+}
+
+/* Mørkt tema er standard. Velges i Bibliotek → Utseende (Mørk, Lys eller Som systemet). */
+:root[data-theme="dark"] {
+    color-scheme: dark;
+    --bg: #120e0b;
+    --bg-deep: #0c0907;
+    --paper: #1c1612;
+    --ink: #f1e9dc;
+    --ink-2: #d2c6b5;
+    --muted: #94877a;
+    --hair: rgba(255, 236, 210, 0.08);
+    --hair-strong: rgba(255, 236, 210, 0.14);
+    --shell: rgba(255, 236, 210, 0.03);
+    --inset: inset 0 1px 0 rgba(255, 240, 220, 0.06);
+    --float: 0 1px 1px rgba(0, 0, 0, 0.2), 0 30px 60px -30px rgba(0, 0, 0, 0.7);
+    --glass: rgba(28, 22, 18, 0.7);
+    --heart: #ff5d76;
+    --heart-wash: rgba(255, 93, 118, 0.14);
+    --danger: #ff8d72;
+    --grain-opacity: 0.06;
+    --grain-blend: screen;
+    --tint-s: 55%;
+    --tint-l: 70%;
+    --orb: 0.2;
+}
+
+/* ---------- Grunnlag ---------- */
+*, *::before, *::after { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+html, body { margin: 0; height: 100%; background: var(--bg); color: var(--ink); }
+body {
+  height: 100dvh; overflow: hidden; position: relative;
+  font-family: var(--sans); font-size: 16px; font-weight: 400;
+  touch-action: manipulation; -webkit-text-size-adjust: 100%;
+  -webkit-font-smoothing: antialiased; text-rendering: optimizeLegibility;
+}
+/* Papirkorn — fast, ikke-interaktivt lag */
+body::after {
+  content: ""; position: fixed; inset: 0; z-index: 2; pointer-events: none;
+  opacity: var(--grain-opacity); mix-blend-mode: var(--grain-blend);
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='180' height='180'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='3' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 0.3  0 0 0 0 0.22  0 0 0 0 0.12  0 0 0 1 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");
+}
+button { font: inherit; color: inherit; background: none; border: 0; padding: 0; cursor: pointer; }
+button:focus-visible, summary:focus-visible {
+  outline: 1.5px solid hsl(var(--hue, 28) var(--tint-s) var(--tint-l)); outline-offset: 3px;
+}
+[hidden] { display: none !important; }
+.sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+svg { display: block; }
+em { font-style: italic; }
+
+.press { transition: transform 160ms var(--ease-out), background-color 200ms ease, color 200ms ease; }
+.press:active { transform: scale(0.96); }
+
+.glass {
+  background: var(--glass);
+  -webkit-backdrop-filter: blur(22px) saturate(1.5);
+  backdrop-filter: blur(22px) saturate(1.5);
+  box-shadow: 0 0 0 1px var(--hair), var(--float);
+}
+
+.eyebrow {
+  display: inline-flex; align-items: center; gap: 8px; width: max-content;
+  padding: 5px 11px; border-radius: 999px;
+  font-family: var(--mono); font-size: 10px; font-weight: 500; letter-spacing: 0.18em; text-transform: uppercase;
+  color: var(--muted); box-shadow: inset 0 0 0 1px var(--hair-strong);
+}
+
+/* Dobbel ramme: ytre skall + indre kjerne */
+.shell {
+  padding: var(--r-pad); border-radius: var(--r-shell);
+  background: var(--shell); box-shadow: 0 0 0 1px var(--hair), var(--float);
+}
+.core {
+  position: relative; height: 100%;
+  border-radius: calc(var(--r-shell) - var(--r-pad));
+  background: var(--paper); box-shadow: var(--inset), 0 0 0 1px var(--hair);
+}
+
+/* ---------- Toppøy ---------- */
+.top-island {
+  position: fixed; z-index: 10; left: 0; right: 0; top: calc(var(--safe-t) + 10px);
+  display: flex; align-items: center; gap: 8px; padding: 0 16px; pointer-events: none;
+  transition: opacity 260ms var(--ease-out), transform 360ms var(--ease-out);
+}
+.top-island > * { pointer-events: auto; }
+body:not([data-view="feed"]) .top-island { opacity: 0; transform: translateY(-14px); pointer-events: none; }
+body:not([data-view="feed"]) .top-island > * { pointer-events: none; }
+
+.brand {
+  display: inline-flex; align-items: center; gap: 8px; height: var(--top-h); padding: 0 18px 0 14px; border-radius: 999px;
+}
+.brand-mark { font-family: var(--serif); font-size: 30px; line-height: 1; height: 16px; margin-top: -2px; color: hsl(var(--hue, 24) var(--tint-s) var(--tint-l)); transition: color 500ms ease; }
+.brand-name { margin: 0; font-family: var(--serif); font-style: italic; font-size: 19px; font-weight: 400; letter-spacing: -0.01em; }
+
+.chip {
+  display: inline-flex; align-items: center; gap: 10px; min-width: 0; max-width: calc(100% - 56px);
+  height: var(--top-h); padding: 0 6px 0 16px; border-radius: 999px;
+}
+.chip-dot { flex: none; width: 8px; height: 8px; border-radius: 50%; background: hsl(var(--hue) var(--tint-s) var(--tint-l)); box-shadow: 0 0 0 4px hsl(var(--hue) 60% 50% / 0.14); }
+.chip-label { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-family: var(--serif); font-style: italic; font-size: 17px; }
+.chip-x { flex: none; width: 36px; height: 36px; display: grid; place-items: center; border-radius: 50%; background: var(--hair); }
+.chip-x svg { width: 15px; height: 15px; }
+
+.top-actions { display: flex; gap: 8px; margin-left: auto; }
+.round { width: var(--top-h); height: var(--top-h); display: grid; place-items: center; border-radius: 50%; color: var(--ink-2); }
+.round svg { width: 21px; height: 21px; }
+
+/* ---------- Visninger ---------- */
+main { position: absolute; inset: 0; }
+.view {
+  position: absolute; inset: 0; opacity: 0; visibility: hidden; transform: translateY(10px) scale(0.995);
+  transition: opacity 220ms var(--ease-out), transform 320ms var(--ease-out), visibility 0s linear 220ms;
+}
+.view.active { opacity: 1; visibility: visible; transform: none; transition: opacity 320ms var(--ease-out), transform 420ms var(--ease-out), visibility 0s; }
+.scroll {
+  height: 100%; overflow-y: auto; overscroll-behavior: contain;
+  padding: calc(var(--safe-t) + 40px) 16px calc(var(--safe-b) + var(--tab-h) + 48px);
+}
+.page { width: 100%; max-width: 600px; margin: 0 auto; }
+
+/* ---------- Feed ---------- */
+/* Statisk bakgrunn: en varm, brun glød som står stille mens kortene flytter seg.
+   Bokfargen brukes bare på selve kortet (kant, omslag og lenke). */
+.backdrop {
+  position: absolute; inset: 0; pointer-events: none;
+  background:
+    radial-gradient(80% 50% at 92% 4%, var(--glow-1), transparent 72%),
+    radial-gradient(70% 45% at 0% 100%, var(--glow-2), transparent 72%),
+    radial-gradient(120% 70% at 50% 50%, var(--glow-3), transparent 80%);
+}
+:root { --glow-1: hsl(28 48% 52% / 0.26); --glow-2: hsl(20 42% 44% / 0.18); --glow-3: hsl(30 35% 60% / 0.08); }
+:root[data-theme="dark"] { --glow-1: hsl(26 52% 34% / 0.55); --glow-2: hsl(18 46% 26% / 0.5); --glow-3: hsl(28 40% 20% / 0.35); }
+
+/* Kortstokken: bare sporet med kortene flytter seg. */
+/* Eget lag for bunken, så kortenes rekkefølge ikke legger seg over menyer og knapper. */
+.deck { position: absolute; inset: 0; z-index: 0; isolation: isolate; overflow: hidden; touch-action: pan-y pinch-zoom; }
+.track { position: absolute; inset: 0; }
+.card { will-change: transform, opacity; }
+@media (hover: hover) and (pointer: fine) {
+  .deck { cursor: grab; }
+  .deck.grabbing { cursor: grabbing; }
+}
+
+.card {
+  --actions-h: 58px;
+  position: absolute; inset: 0;
+  display: flex; flex-direction: column; justify-content: center;
+  padding: calc(var(--safe-t) + 10px + var(--top-h) + 14px) 16px
+           calc(var(--safe-b) + 12px + var(--tab-h) + 12px + var(--actions-h) + 10px);
+  -webkit-user-select: none; user-select: none; -webkit-touch-callout: none;
+}
+.slip {
+  display: flex; flex-direction: column; width: 100%; max-width: 560px; height: 100%; max-height: 680px; margin: 0 auto;
+  transition: transform 560ms var(--ease-out), opacity 460ms var(--ease-out);
+}
+.slip > .shell { flex: 1; min-height: 0; }
+.slip .core { display: flex; flex-direction: column; padding: 22px 24px 20px 28px; overflow: hidden; }
+.spine {
+  position: absolute; left: 0; top: 26px; bottom: 26px; width: 3px; border-radius: 0 3px 3px 0;
+  background: hsl(var(--hue) var(--tint-s) var(--tint-l));
+}
+.slip-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.slip-head .eyebrow { font-variant-numeric: tabular-nums; }
+.slip-head .eyebrow i { width: 3px; height: 3px; border-radius: 50%; background: currentColor; opacity: 0.6; }
+.kind-tag { color: hsl(var(--hue) var(--tint-s) var(--tint-l)); box-shadow: inset 0 0 0 1px hsl(var(--hue) 50% 50% / 0.3); }
+
+.card-scroll {
+  flex: 1; min-height: 0; display: flex; flex-direction: column; overflow: hidden;
+  padding: 18px 0; scrollbar-width: none;
+}
+.card-scroll::-webkit-scrollbar { display: none; }
+.card-scroll.scrolls {
+  overflow-y: auto; overscroll-behavior: contain; touch-action: pan-y;
+  -webkit-mask-image: linear-gradient(to bottom, transparent 0, #000 18px, #000 calc(100% - 40px), transparent);
+  mask-image: linear-gradient(to bottom, transparent 0, #000 18px, #000 calc(100% - 40px), transparent);
+}
+.card-scroll > :first-child { margin-top: auto; }
+.card-scroll > :last-child { margin-bottom: auto; }
+
+.quote {
+  margin: 0; font-family: var(--serif); font-weight: 380; color: var(--ink);
+  font-optical-sizing: auto; letter-spacing: -0.012em; line-height: 1.3;
+  text-wrap: pretty; hanging-punctuation: first;
+}
+.quote .om { color: hsl(var(--hue) var(--tint-s) var(--tint-l)); font-style: normal; }
+.len-s { font-size: clamp(2rem, 8.6vw, 2.75rem); line-height: 1.12; letter-spacing: -0.025em; font-weight: 360; }
+.len-m { font-size: clamp(1.55rem, 6.4vw, 2.05rem); line-height: 1.2; letter-spacing: -0.018em; }
+.len-l { font-size: clamp(1.28rem, 5.2vw, 1.6rem); line-height: 1.32; }
+.len-xl { font-size: clamp(1.1rem, 4.5vw, 1.3rem); line-height: 1.45; letter-spacing: -0.005em; }
+.len-xxl { font-size: clamp(0.98rem, 4vw, 1.12rem); line-height: 1.45; letter-spacing: 0; }
+
+.note {
+  margin: 22px 0 0; padding: 14px 16px 14px 18px; border-radius: 16px; position: relative;
+  background: hsl(var(--hue) 50% 50% / 0.07); color: var(--ink-2);
+  font-family: var(--serif); font-style: italic; font-size: 1.02rem; line-height: 1.45; white-space: pre-wrap;
+}
+.note-label {
+  display: block; margin-bottom: 6px; font-family: var(--mono); font-style: normal;
+  font-size: 9.5px; letter-spacing: 0.18em; text-transform: uppercase; color: var(--muted);
+}
+
+.book {
+  display: flex; align-items: center; gap: 14px; text-align: left; min-width: 0;
+  padding-top: 16px; border-top: 1px solid var(--hair); width: 100%;
+}
+.book-meta { display: flex; flex-direction: column; align-items: flex-start; gap: 4px; min-width: 0; }
+.book-title {
+  font-family: var(--serif); font-style: italic; font-size: 1.22rem; line-height: 1.2; color: var(--ink); letter-spacing: -0.01em;
+  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+}
+
+/* Bokomslag */
+.cover {
+  position: relative; flex: none; display: block; overflow: hidden; border-radius: 4px 7px 7px 4px;
+  background: hsl(var(--hue) 35% 82%);
+  box-shadow: 0 0 0 1px rgba(40, 25, 10, 0.12), 0 12px 22px -12px rgba(40, 25, 10, 0.55), 0 2px 4px -2px rgba(40, 25, 10, 0.3);
+}
+.cover::after { /* rygg og lysrefleks, så det ser ut som en bok */
+  content: ""; position: absolute; inset: 0; pointer-events: none;
+  background: linear-gradient(90deg, rgba(0, 0, 0, 0.22) 0, rgba(255, 255, 255, 0.18) 4%, transparent 9%, transparent 92%, rgba(0, 0, 0, 0.08));
+}
+.cover img { display: block; width: 100%; height: 100%; object-fit: cover; }
+.cover-m { width: 54px; height: 80px; }
+.cover-s { width: 36px; height: 54px; border-radius: 3px 5px 5px 3px; }
+.cover-xs { width: 28px; height: 42px; border-radius: 2px 4px 4px 2px; }
+.cover-fb {
+  position: absolute; inset: 0; display: grid; place-items: center;
+  background:
+    linear-gradient(160deg, hsl(var(--hue) 45% 46%), hsl(calc(var(--hue) - 20) 50% 30%));
+  color: rgba(255, 250, 240, 0.92); font-family: var(--serif); font-style: italic; letter-spacing: -0.02em;
+}
+.cover-m .cover-fb { font-size: 22px; }
+.cover-s .cover-fb { font-size: 15px; }
+.cover-xs .cover-fb { font-size: 12px; }
+:root[data-theme="dark"] .cover { box-shadow: 0 0 0 1px rgba(255, 240, 220, 0.1), 0 14px 24px -12px rgba(0, 0, 0, 0.8); background: hsl(var(--hue) 20% 22%); }
+.book-author { font-family: var(--mono); font-size: 10.5px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--muted); }
+.book-go {
+  display: inline-flex; align-items: center; gap: 6px; margin-top: 6px;
+  font-family: var(--mono); font-size: 9.5px; letter-spacing: 0.16em; text-transform: uppercase;
+  color: hsl(var(--hue) var(--tint-s) var(--tint-l));
+}
+.book-go svg { width: 12px; height: 12px; transition: transform 220ms var(--ease-out); }
+.book:active .book-go svg { transform: translateX(3px); }
+
+/* Faste knapper for kortet som vises */
+.deck-actions {
+  position: absolute; z-index: 5; left: 0; right: 0;
+  bottom: calc(var(--safe-b) + 12px + var(--tab-h) + 12px);
+  display: flex; align-items: center; justify-content: flex-end; gap: 8px;
+  width: 100%; max-width: 592px; margin: 0 auto; padding: 0 16px;
+}
+.deck-hint {
+  margin-right: auto; padding-left: 4px; display: inline-flex; align-items: center; gap: 8px;
+  font-family: var(--mono); font-size: 9.5px; letter-spacing: 0.18em; text-transform: uppercase; color: var(--muted);
+}
+.deck-hint::before {
+  content: ""; width: 1px; height: 18px; background: linear-gradient(transparent, var(--muted));
+  animation: hint 2.4s var(--ease-out) infinite;
+}
+@keyframes hint { 0% { transform: translateY(6px); opacity: 0; } 40% { opacity: 1; } 100% { transform: translateY(-6px); opacity: 0; } }
+.deck-actions .icon-pill { background: var(--glass); -webkit-backdrop-filter: blur(18px); backdrop-filter: blur(18px); }
+.icon-pill {
+  width: 46px; height: 46px; display: grid; place-items: center; border-radius: 50%;
+  color: var(--ink-2); box-shadow: inset 0 0 0 1px var(--hair-strong); background: var(--shell);
+}
+.icon-pill svg { width: 21px; height: 21px; }
+
+/* Lagre-knapp med ikon i egen sirkel */
+.fav-btn {
+  display: inline-flex; align-items: center; gap: 10px; height: 46px; padding: 0 5px 0 18px; border-radius: 999px;
+  font-size: 14px; font-weight: 500; letter-spacing: -0.005em;
+  background: var(--ink); color: var(--bg);
+}
+.fav-btn .fav-ic {
+  width: 36px; height: 36px; display: grid; place-items: center; border-radius: 50%;
+  background: rgba(255, 255, 255, 0.12); transition: transform 300ms var(--ease-out);
+}
+:root[data-theme="dark"] .fav-btn .fav-ic { background: rgba(0, 0, 0, 0.1); }
+.fav-btn svg { width: 18px; height: 18px; }
+.fav-btn[aria-pressed="true"] { background: var(--heart-wash); color: var(--heart); box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--heart) 30%, transparent); }
+.fav-btn[aria-pressed="true"] .fav-ic { background: var(--heart); color: #fff; }
+.fav-btn[aria-pressed="true"] svg path, .fav-only[aria-pressed="true"] svg path { fill: currentColor; }
+.fav-btn.pop .fav-ic { animation: pop 520ms var(--ease-out); }
+@keyframes pop { 0% { transform: scale(0.7); } 45% { transform: scale(1.14); } 100% { transform: scale(1); } }
+
+/* Hjerte ved dobbelttrykk */
+.burst { position: absolute; inset: 0; display: grid; place-items: center; pointer-events: none; color: var(--heart); opacity: 0; }
+.burst svg { width: 120px; height: 120px; filter: drop-shadow(0 14px 30px rgba(210, 60, 85, 0.35)); }
+.burst svg path { fill: currentColor; stroke: none; }
+.burst.go { animation: burst 900ms var(--ease-out); }
+@keyframes burst {
+  0% { opacity: 0; transform: scale(0.85) rotate(-8deg); }
+  18% { opacity: 1; transform: scale(1.08) rotate(3deg); }
+  34% { transform: scale(0.97) rotate(0deg); }
+  70% { opacity: 1; transform: scale(1); }
+  100% { opacity: 0; transform: scale(1.04) translateY(-28px); }
+}
+
+/* Inngang: første gang et kort vises */
+.card .rise { opacity: 0; transform: translateY(16px); filter: blur(5px); }
+.card.in .rise {
+  opacity: 1; transform: none; filter: blur(0);
+  transition: opacity 700ms var(--ease-out), transform 900ms var(--ease-out), filter 600ms var(--ease-out);
+  transition-delay: calc(var(--d, 0) * 1ms);
+}
+
+/* ---------- Tom feed ---------- */
+.empty {
+  position: absolute; inset: 0; display: flex; flex-direction: column; justify-content: center; gap: 18px;
+  padding: calc(var(--safe-t) + 40px) 28px calc(var(--safe-b) + var(--tab-h) + 40px); max-width: 520px; margin: 0 auto;
+}
+.empty-title { margin: 0; font-family: var(--serif); font-weight: 340; font-size: clamp(3rem, 15vw, 4.6rem); line-height: 0.95; letter-spacing: -0.04em; }
+.empty-title em { color: hsl(24 var(--tint-s) var(--tint-l)); }
+.empty p { margin: 0; color: var(--ink-2); font-size: 1rem; line-height: 1.55; max-width: 34ch; }
+.empty-actions { display: flex; flex-direction: column; align-items: flex-start; gap: 10px; margin-top: 12px; }
+
+/* Primærknapp med ikon i egen sirkel */
+.cta {
+  display: inline-flex; align-items: center; justify-content: space-between; gap: 18px;
+  height: 56px; padding: 0 6px 0 24px; border-radius: 999px;
+  background: var(--ink); color: var(--bg); font-size: 15px; font-weight: 500; letter-spacing: -0.01em;
+  box-shadow: 0 20px 36px -20px rgba(40, 24, 8, 0.55);
+}
+.cta.wide { width: 100%; }
+.cta-icon {
+  width: 44px; height: 44px; display: grid; place-items: center; border-radius: 50%;
+  background: rgba(255, 255, 255, 0.12); transition: transform 300ms var(--ease-out);
+}
+:root[data-theme="dark"] .cta-icon { background: rgba(0, 0, 0, 0.12); }
+.cta-icon svg { width: 18px; height: 18px; }
+.cta:active .cta-icon { transform: translate(2px, -2px) scale(1.05); }
+@media (hover: hover) and (pointer: fine) { .cta:hover .cta-icon { transform: translate(2px, -2px) scale(1.05); } }
+
+.ghost {
+  display: inline-flex; align-items: center; justify-content: center; height: 48px; padding: 0 20px; border-radius: 999px;
+  font-size: 14.5px; font-weight: 500; color: var(--ink-2); box-shadow: inset 0 0 0 1px var(--hair-strong);
+}
+.ghost.danger { color: var(--danger); }
+
+/* ---------- Sideoverskrifter ---------- */
+.page-head { display: flex; flex-direction: column; gap: 14px; margin-bottom: 26px; }
+.page-title {
+  margin: 0; font-family: var(--serif); font-weight: 340; font-size: clamp(2.8rem, 13vw, 4rem);
+  line-height: 0.95; letter-spacing: -0.04em;
+}
+.page-title em { color: hsl(24 var(--tint-s) var(--tint-l)); }
+.page-title sup {
+  font-family: var(--mono); font-size: 0.24em; letter-spacing: 0.08em; vertical-align: top;
+  margin-left: 6px; color: var(--muted); position: relative; top: 0.5em;
+}
+
+/* ---------- Favoritter ---------- */
+.fav-list { display: flex; flex-direction: column; gap: 14px; }
+.fav-item { content-visibility: auto; contain-intrinsic-size: auto 220px; }
+.fav-item .core { padding: 22px 18px 14px 24px; }
+.fav-item .spine { top: 22px; bottom: 22px; }
+.fav-item blockquote {
+  margin: 0 0 18px; font-family: var(--serif); font-weight: 380; font-size: 1.28rem; line-height: 1.34;
+  letter-spacing: -0.012em; text-wrap: pretty; hanging-punctuation: first;
+}
+.fav-item .note { margin: -4px 0 18px; font-size: 0.98rem; }
+.fav-foot { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding-top: 12px; border-top: 1px solid var(--hair); }
+.fav-foot .book { border: 0; padding: 0; gap: 12px; }
+.fav-foot .book-title { font-size: 1rem; }
+.fav-foot .actions { display: flex; gap: 6px; flex: none; }
+.fav-foot .icon-pill { width: 42px; height: 42px; }
+.fav-only[aria-pressed="true"] { color: var(--heart); }
+
+.reveal { opacity: 0; transform: translateY(22px); filter: blur(4px); }
+.reveal.in {
+  opacity: 1; transform: none; filter: blur(0);
+  transition: opacity 700ms var(--ease-out), transform 850ms var(--ease-out), filter 600ms var(--ease-out);
+  transition-delay: calc(var(--d, 0) * 1ms);
+}
+.fav-item.leaving { opacity: 0; transform: scale(0.97); transition: opacity 180ms var(--ease-out), transform 180ms var(--ease-out); }
+
+.fav-empty { text-align: left; padding: 8px 4px; }
+.fav-empty-heart { display: block; width: 44px; height: 44px; color: var(--heart); margin-bottom: 14px; }
+.fav-empty-heart svg { width: 44px; height: 44px; }
+.fav-empty p { margin: 0; font-size: 1.05rem; line-height: 1.55; color: var(--ink-2); max-width: 34ch; }
+.fav-empty em { font-family: var(--serif); font-size: 1.2rem; color: var(--ink); }
+
+/* ---------- Bibliotek ---------- */
+.bento { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 18px; }
+.bento-big { grid-column: 1 / -1; }
+.bento .core { display: flex; flex-direction: column; justify-content: space-between; gap: 18px; padding: 18px 20px; min-height: 110px; }
+.bento-big .core { min-height: 168px; }
+.stat-label { font-family: var(--mono); font-size: 10px; letter-spacing: 0.18em; text-transform: uppercase; color: var(--muted); }
+.stat-num { font-family: var(--serif); font-weight: 320; font-size: 5.2rem; line-height: 0.8; letter-spacing: -0.05em; font-variant-numeric: tabular-nums; }
+.stat-num.sm { font-size: 2.8rem; letter-spacing: -0.04em; }
+.hint { margin: 14px 6px 26px; font-size: 13.5px; line-height: 1.55; color: var(--muted); }
+
+.help { margin-bottom: 18px; }
+.help .core { padding: 4px 20px; }
+.help details { padding: 18px 0; border-bottom: 1px solid var(--hair); }
+.help details:last-child { border-bottom: 0; }
+.help summary {
+  display: flex; align-items: center; gap: 10px; list-style: none; cursor: pointer;
+  font-family: var(--serif); font-size: 1.15rem; letter-spacing: -0.01em;
+}
+.help summary::-webkit-details-marker { display: none; }
+.help summary::after {
+  content: ""; margin-left: auto; flex: none; width: 9px; height: 9px;
+  border-right: 1.3px solid var(--muted); border-bottom: 1.3px solid var(--muted);
+  transform: rotate(45deg) translate(-2px, -2px); transition: transform 300ms var(--ease-out);
+}
+.help details[open] summary::after { transform: rotate(-135deg) translate(-2px, -2px); }
+.sum-tag { flex: none; white-space: nowrap; font-family: var(--mono); font-size: 9.5px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--muted); padding: 3px 8px; border-radius: 999px; box-shadow: inset 0 0 0 1px var(--hair-strong); }
+.help ol, .help p { margin: 12px 0 0; color: var(--ink-2); font-size: 14.5px; line-height: 1.6; }
+.help ol { padding-left: 20px; }
+.help li::marker { font-family: var(--mono); font-size: 12px; color: var(--muted); }
+.help code { font-family: var(--mono); font-size: 0.82em; padding: 2px 6px; border-radius: 6px; background: var(--hair); }
+.theme-pick { display: flex; flex-direction: column; gap: 10px; margin: 0 0 18px; padding: 0 4px; }
+.seg {
+  position: relative; display: grid; grid-template-columns: repeat(3, 1fr); padding: 5px; border-radius: 999px;
+  background: var(--shell); box-shadow: inset 0 0 0 1px var(--hair-strong);
+}
+.seg button {
+  height: 40px; border-radius: 999px; font-size: 13.5px; font-weight: 500; color: var(--muted);
+  transition: background-color 260ms var(--ease-out), color 260ms var(--ease-out);
+}
+.seg button[aria-checked="true"] { background: var(--ink); color: var(--bg); }
+.lib-secondary { display: flex; flex-wrap: wrap; gap: 10px; }
+
+/* ---------- Fanemeny-øy ---------- */
+.tab-island {
+  position: fixed; z-index: 10; left: 50%; bottom: calc(var(--safe-b) + 12px); transform: translateX(-50%);
+  display: grid; grid-template-columns: repeat(3, 1fr); width: min(calc(100% - 32px), 380px);
+  height: var(--tab-h); padding: 6px; border-radius: 999px;
+}
+.tab-indicator {
+  position: absolute; top: 6px; bottom: 6px; left: 6px; width: calc((100% - 12px) / 3);
+  border-radius: 999px; background: var(--ink);
+  transform: translateX(calc(var(--tab-i, 0) * 100%));
+  transition: transform 460ms var(--ease-drawer);
+}
+.tab {
+  position: relative; z-index: 1; display: flex; align-items: center; justify-content: center; gap: 7px;
+  border-radius: 999px; font-size: 13px; font-weight: 500; letter-spacing: -0.005em; color: var(--muted);
+  transition: color 260ms var(--ease-out);
+}
+.tab svg { width: 19px; height: 19px; flex: none; }
+.tab.active { color: var(--bg); }
+.tab[data-view="favs"].active svg path { fill: currentColor; }
+
+/* ---------- Bokvelger ---------- */
+.sheet {
+  position: fixed; inset: 0; z-index: 20; display: flex; align-items: flex-end; justify-content: center;
+  background: rgba(18, 12, 6, 0.32);
+  animation: fade 260ms var(--ease-out);
+}
+.sheet.closing { animation: fade-out 200ms var(--ease-out) forwards; }
+.sheet-panel {
+  width: 100%; max-width: 600px; max-height: 84dvh; display: flex; flex-direction: column;
+  background: var(--bg); border-radius: 32px 32px 0 0;
+  box-shadow: 0 -1px 0 var(--hair), 0 -30px 60px -30px rgba(0, 0, 0, 0.3);
+  padding-bottom: var(--safe-b);
+  animation: drawer-in 480ms var(--ease-drawer);
+}
+.sheet.closing .sheet-panel { animation: drawer-out 220ms var(--ease-move) forwards; }
+.grabber { display: block; width: 38px; height: 5px; border-radius: 3px; background: var(--hair-strong); margin: 8px auto 0; }
+.sheet-head { display: flex; align-items: flex-start; justify-content: space-between; padding: 16px 16px 10px 22px; }
+.sheet-head h2 { margin: 10px 0 0; font-family: var(--serif); font-weight: 360; font-size: 2rem; letter-spacing: -0.03em; line-height: 1; }
+.sheet-head .round { box-shadow: inset 0 0 0 1px var(--hair-strong); }
+.sheet-list { overflow-y: auto; overscroll-behavior: contain; padding: 6px 10px 18px; }
+.book-row {
+  display: flex; align-items: center; gap: 14px; width: 100%; padding: 14px 14px; border-radius: 18px; text-align: left;
+  animation: row-in 520ms var(--ease-out) both; animation-delay: calc(var(--d, 0) * 1ms);
+  transition: background-color 200ms ease;
+}
+.book-row:active { background: var(--hair); }
+.book-row.current { background: var(--paper); box-shadow: 0 0 0 1px var(--hair); }
+.book-row .swatch { flex: none; width: 6px; height: 34px; border-radius: 3px; background: hsl(var(--hue) var(--tint-s) var(--tint-l)); }
+.book-row .swatch.all { background: linear-gradient(hsl(20 60% 55%), hsl(140 40% 45%), hsl(210 55% 55%), hsl(320 45% 58%)); }
+.book-row .book-text { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+.book-row .book-title { font-size: 1.06rem; -webkit-line-clamp: 1; }
+.book-row .count { margin-left: auto; padding-left: 10px; font-family: var(--mono); font-size: 12px; color: var(--muted); font-variant-numeric: tabular-nums; }
+
+/* ---------- Valgmeny ---------- */
+.menu-panel { padding: 0 12px calc(var(--safe-b) + 14px); }
+.menu-head { padding: 18px 10px 18px; }
+.menu-preview {
+  margin: 0 0 10px; font-family: var(--serif); font-size: 1.2rem; line-height: 1.35; letter-spacing: -0.01em;
+  display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden;
+}
+.menu-preview::before { content: "“"; color: hsl(var(--hue) var(--tint-s) var(--tint-l)); }
+.menu-book { font-family: var(--mono); font-size: 10px; letter-spacing: 0.16em; text-transform: uppercase; color: var(--muted); }
+.menu-group {
+  display: flex; flex-direction: column; padding: 6px; border-radius: 24px;
+  background: var(--shell); box-shadow: 0 0 0 1px var(--hair);
+}
+.menu-row {
+  display: flex; align-items: center; gap: 14px; width: 100%; padding: 12px; border-radius: 18px; text-align: left;
+  transition: transform 160ms var(--ease-out), background-color 200ms ease;
+  animation: row-in 460ms var(--ease-out) both;
+}
+.menu-row + .menu-row { animation-delay: 40ms; }
+.menu-row:active { background: var(--hair); }
+.menu-ic {
+  flex: none; width: 42px; height: 42px; display: grid; place-items: center; border-radius: 50%;
+  background: var(--paper); box-shadow: 0 0 0 1px var(--hair), var(--inset); color: var(--ink-2);
+}
+.menu-ic svg { width: 20px; height: 20px; }
+.menu-text { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.menu-text b { font-weight: 500; font-size: 15.5px; letter-spacing: -0.01em; }
+.menu-text small { font-size: 12.5px; color: var(--muted); }
+.menu-row.danger .menu-text b, .menu-row.danger .menu-ic { color: var(--danger); }
+.menu-cancel { width: 100%; margin-top: 10px; }
+
+/* ---------- Endre utsnitt ---------- */
+.edit-panel { max-height: 92dvh; }
+.edit-hint { margin: 0 22px 10px; font-size: 13.5px; line-height: 1.5; color: var(--muted); }
+.edit-words {
+  flex: 1; min-height: 0; overflow-y: auto; overscroll-behavior: contain;
+  margin: 0 12px; padding: 18px 16px 22px; border-radius: 24px;
+  background: var(--paper); box-shadow: 0 0 0 1px var(--hair), var(--inset);
+  font-family: var(--serif); font-size: 1.32rem; line-height: 1.7; letter-spacing: -0.01em;
+  -webkit-user-select: none; user-select: none;
+}
+.edit-words .w {
+  padding: 1px 3px; margin: 0 -2px; border-radius: 6px; color: var(--ink);
+  line-height: 1.3; vertical-align: baseline;
+  transition: opacity 180ms var(--ease-out), background-color 180ms ease, color 180ms ease;
+}
+.edit-words .w:not(.out) { background: hsl(var(--hue) 70% 55% / 0.13); }
+.edit-words .w.first, .edit-words .w.last { background: hsl(var(--hue) 70% 50% / 0.32); }
+.edit-words .w.out { opacity: 0.3; text-decoration: line-through; text-decoration-thickness: 1px; }
+.edit-foot { display: flex; flex-direction: column; gap: 12px; padding: 14px 16px 6px; }
+.edit-status { display: flex; justify-content: space-between; gap: 12px; padding: 0 6px; font-family: var(--mono); font-size: 10.5px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--muted); font-variant-numeric: tabular-nums; }
+.edit-status #editStep { color: hsl(var(--hue) var(--tint-s) var(--tint-l)); }
+.edit-actions { display: grid; grid-template-columns: auto 1fr; gap: 8px; }
+.edit-actions .ghost { height: 56px; }
+.ghost:disabled { opacity: 0.4; cursor: default; }
+
+/* ---------- Boklinje med slett-knapp ---------- */
+.book-line { display: flex; align-items: center; gap: 4px; animation: row-in 520ms var(--ease-out) both; animation-delay: calc(var(--d, 0) * 1ms); }
+.book-line .book-row { flex: 1; min-width: 0; animation: none; }
+.row-del {
+  flex: none; width: 42px; height: 42px; display: grid; place-items: center; border-radius: 50%;
+  color: var(--muted); transition: transform 160ms var(--ease-out), color 200ms ease, background-color 200ms ease;
+}
+.row-del svg { width: 19px; height: 19px; }
+.row-del:active { color: var(--danger); background: color-mix(in srgb, var(--danger) 10%, transparent); }
+@media (hover: hover) and (pointer: fine) {
+  .row-del:hover { color: var(--danger); background: color-mix(in srgb, var(--danger) 10%, transparent); }
+}
+
+/* ---------- Bekreftelse ---------- */
+.confirm-sheet { z-index: 25; }
+.confirm-panel { padding: 0 16px calc(var(--safe-b) + 16px); }
+.confirm-body { display: flex; flex-direction: column; align-items: flex-start; gap: 10px; padding: 22px 8px 22px; }
+.confirm-ic {
+  width: 48px; height: 48px; display: grid; place-items: center; border-radius: 50%; margin-bottom: 4px;
+  color: var(--danger); background: color-mix(in srgb, var(--danger) 10%, transparent);
+}
+.confirm-ic svg { width: 22px; height: 22px; }
+.confirm-body h2 { margin: 0; font-family: var(--serif); font-weight: 360; font-size: 1.8rem; line-height: 1.1; letter-spacing: -0.025em; text-wrap: balance; }
+.confirm-body p { margin: 0; color: var(--ink-2); font-size: 14.5px; line-height: 1.55; }
+.confirm-actions { display: grid; grid-template-columns: auto 1fr; gap: 8px; }
+.confirm-actions .ghost { height: 56px; }
+.confirm-actions .cta { justify-content: center; padding: 0 24px; }
+.danger-cta { background: var(--danger); color: #fff; box-shadow: 0 20px 36px -20px color-mix(in srgb, var(--danger) 80%, transparent); }
+:root[data-theme="dark"] .danger-cta { color: #1c0d08; }
+
+@keyframes fade { from { opacity: 0; } }
+@keyframes fade-out { to { opacity: 0; } }
+@keyframes drawer-in { from { transform: translateY(100%); } }
+@keyframes drawer-out { to { transform: translateY(100%); } }
+@keyframes row-in { from { opacity: 0; transform: translateY(12px); } }
+
+/* ---------- Toast ---------- */
+.toast {
+  position: fixed; z-index: 30; left: 50%; top: calc(var(--safe-t) + 10px + var(--top-h) + 12px);
+  display: flex; align-items: center; gap: 14px; width: max-content; max-width: calc(100% - 32px);
+  padding: 8px 8px 8px 18px; min-height: 46px; border-radius: 999px;
+  background: var(--ink); color: var(--bg); font-size: 14px; letter-spacing: -0.005em;
+  box-shadow: 0 20px 40px -20px rgba(20, 12, 4, 0.6);
+  transform: translateX(-50%); animation: toast-in 420ms var(--ease-out);
+}
+.toast:not(:has(button)) { padding-right: 18px; }
+.toast button { height: 32px; padding: 0 14px; border-radius: 999px; background: rgba(255, 255, 255, 0.14); font-weight: 600; font-size: 13px; }
+:root[data-theme="dark"] .toast button { background: rgba(0, 0, 0, 0.1); }
+@keyframes toast-in { from { opacity: 0; transform: translate(-50%, -12px) scale(0.96); } }
+body:not([data-view="feed"]) .toast { top: calc(var(--safe-t) + 12px); }
+
+body.dragging main::after {
+  content: "Slipp filen her"; position: fixed; inset: 16px; z-index: 15; display: grid; place-items: center;
+  border-radius: 32px; border: 1.5px dashed var(--hair-strong); background: var(--glass);
+  font-family: var(--serif); font-style: italic; font-size: 1.6rem;
+}
+
+/* Hover kun for mus/styreflate */
+@media (hover: hover) and (pointer: fine) {
+  .round:hover, .icon-pill:hover, .ghost:hover, .chip-x:hover { background-color: var(--hair-strong); color: var(--ink); }
+  .tab:not(.active):hover { color: var(--ink); }
+  .book-row:hover { background-color: var(--hair); }
+  .book:hover .book-title { text-decoration: underline; text-decoration-thickness: 1px; text-underline-offset: 4px; }
+  .fav-btn:hover { opacity: 0.9; }
+  .help summary:hover { color: var(--ink-2); }
+}
+
+/* =========================================================
+   Koselig — varmt, mykt og menneskelig
+   Papirkort på en valnøttbrun pult, håndskrevne notater,
+   myke skygger i stedet for hårlinjer, glass og gradienter.
+   ========================================================= */
+
+:root {
+  --serif: "Newsreader", "Iowan Old Style", "Charter", Georgia, serif;
+  --sans: var(--serif);
+  --mono: var(--serif);
+  --hand: "Caveat", "Bradley Hand", "Segoe Print", cursive;
+
+  /* Dag: lin og lys eik */
+  --bg: #eadfcd;
+  --bar: #f6eddf;
+  --ink: #33261c;
+  --ink-2: #5a4636;
+  --muted: #8c7660;
+  --hair: rgba(80, 52, 28, 0.12);
+  --hair-strong: rgba(80, 52, 28, 0.2);
+  --shell: rgba(80, 52, 28, 0.05);
+  --glass: var(--bar);
+  --accent: #b0603a;
+  --accent-ink: #fff7ec;
+
+  /* Papir (likt i begge temaer) */
+  --paper: #fbf4e7;
+  --paper-2: #efe1ca;
+  --paper-3: #e6d4b8;
+  --paper-ink: #2f241b;
+  --paper-ink-2: #5b4838;
+  --paper-muted: #957e66;
+  --paper-hair: rgba(90, 60, 30, 0.14);
+  --paper-tex: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='220' height='220'><filter id='p'><feTurbulence type='fractalNoise' baseFrequency='.75' numOctaves='4' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 0.45  0 0 0 0 0.33  0 0 0 0 0.2  0 0 0 0.07 0'/></filter><rect width='100%' height='100%' filter='url(%23p)'/></svg>");
+
+  /* Myke, varme skygger */
+  --soft: 0 1px 2px rgba(70, 40, 15, 0.08), 0 12px 26px -10px rgba(70, 40, 15, 0.25), 0 36px 64px -30px rgba(70, 40, 15, 0.35);
+  --soft-sm: 0 1px 2px rgba(70, 40, 15, 0.08), 0 8px 18px -8px rgba(70, 40, 15, 0.28);
+  --float: var(--soft-sm);
+  --inset: none;
+
+  --grain-opacity: 0.1;
+  --grain-blend: multiply;
+  --r-card: 18px;
+}
+:root[data-theme="dark"] {
+  /* Kveld: valnøtt og lampelys */
+  --bg: #2a1f18;
+  --bar: #3b2c22;
+  --ink: #f2e6d4;
+  --ink-2: #dccbb4;
+  --muted: #ad987f;
+  --hair: rgba(255, 230, 200, 0.1);
+  --hair-strong: rgba(255, 230, 200, 0.18);
+  --shell: rgba(255, 230, 200, 0.05);
+  --accent: #d9875a;
+  --accent-ink: #2a1a10;
+  --paper: #f3e7d3;
+  --paper-2: #e3d1b6;
+  --paper-3: #d6c09f;
+  --soft: 0 1px 2px rgba(0, 0, 0, 0.3), 0 16px 32px -12px rgba(0, 0, 0, 0.55), 0 44px 80px -34px rgba(0, 0, 0, 0.65);
+  --soft-sm: 0 1px 2px rgba(0, 0, 0, 0.3), 0 10px 22px -10px rgba(0, 0, 0, 0.6);
+  --grain-opacity: 0.09;
+  --grain-blend: overlay;
+}
+
+body { font-family: var(--serif); }
+
+/* Alt som ligger på papir får mørkt blekk, uansett tema. */
+.core, .sheet-panel {
+  --ink: var(--paper-ink);
+  --ink-2: var(--paper-ink-2);
+  --muted: var(--paper-muted);
+  --hair: var(--paper-hair);
+  --hair-strong: rgba(90, 60, 30, 0.22);
+  --shell: rgba(90, 60, 30, 0.05);
+  --tint-s: 48%;
+  --tint-l: 40%;
+  --heart: #c4364d;
+  --heart-wash: rgba(196, 54, 77, 0.1);
+  --danger: #a8341f;
+  color: var(--ink);
+}
+
+/* Ingen bakgrunnsglød — bare pulten. */
+.backdrop { background: none; }
+
+/* ---------- Papirkort ---------- */
+.shell { padding: 0; background: none; box-shadow: none; border-radius: var(--r-card); }
+.core {
+  border-radius: var(--r-card);
+  background: var(--paper-tex), var(--paper);
+  box-shadow: var(--soft);
+}
+/* En liten bunke ark bak kortet i feeden */
+.slip > .shell { position: relative; isolation: isolate; }
+.slip > .shell::before, .slip > .shell::after { display: none;
+  content: ""; position: absolute; inset: 0; z-index: -1; border-radius: var(--r-card);
+  background: var(--paper-tex), var(--paper-2); box-shadow: var(--soft-sm);
+}
+.slip > .shell::before { transform: rotate(-2.2deg) translate(-4px, 8px); }
+.slip > .shell::after { transform: rotate(1.4deg) translate(5px, 4px); background: var(--paper-tex), var(--paper-3); }
+/* Kortene bak i bunken viser bare papiret og bokmerket; teksten kommer fram når kortet havner øverst. */
+.card .core > :not(.spine) { transition: opacity 380ms var(--ease-out); }
+.card.behind .core > :not(.spine) { opacity: 0; }
+
+.slip .core { padding: 22px 24px 20px; }
+/* Bokmerkebånd i bokas farge */
+.spine {
+  left: auto; right: 24px; top: 0; bottom: auto; width: 15px; height: 44px; border-radius: 0;
+  background: hsl(var(--hue) 46% 42%);
+  clip-path: polygon(0 0, 100% 0, 100% 100%, 50% 80%, 0 100%);
+}
+.fav-item .spine { top: 0; bottom: auto; height: 34px; width: 12px; right: 20px; }
+.slip-head { justify-content: flex-start; gap: 14px; }
+/* Uten bokmerkebånd */
+.spine { display: none; }
+
+/* Småtekst: kursiv serif i stedet for skrivemaskin-versaler */
+.eyebrow, .note-label, .book-author, .book-go, .stat-label, .sum-tag, .deck-hint,
+.edit-status, .menu-book, .book-row .count, .page-title sup, .help code {
+  font-family: var(--serif); font-style: italic; text-transform: none; letter-spacing: 0; font-weight: 400;
+}
+.eyebrow { padding: 0; box-shadow: none; font-size: 15px; color: var(--muted); gap: 6px; }
+.kind-tag { box-shadow: none; }
+.book-author { font-size: 15px; }
+.book-go { font-size: 14.5px; color: hsl(var(--hue) 46% 38%); }
+.stat-label { font-size: 16px; }
+.sum-tag { font-size: 13px; padding: 0; box-shadow: none; color: var(--muted); }
+.menu-book { font-size: 14px; }
+.book-row .count { font-size: 15px; }
+.edit-status { font-size: 14px; }
+.page-title sup { font-size: 0.32em; top: 0.3em; }
+.help code { font-size: 0.95em; background: var(--paper-2); }
+.help li::marker { font-family: var(--serif); font-size: 14px; }
+
+/* Sitatet */
+.quote { font-weight: 400; letter-spacing: -0.008em; }
+.len-s { font-weight: 380; }
+.quote .om { color: hsl(var(--hue) 46% 42%); }
+.book { border-top: 1px dashed var(--hair-strong); }
+
+/* Dine notater, håndskrevet i margen */
+.note {
+  margin-top: 20px; padding: 2px 0 2px 14px; border-radius: 0; background: none;
+  border-left: 2px solid hsl(var(--hue) 46% 42% / 0.45);
+  font-family: var(--hand); font-style: normal; font-size: 1.45rem; line-height: 1.15; color: #4a3a2c;
+}
+.note-label { font-size: 14px; margin-bottom: 2px; }
+
+/* ---------- Knapper og menyer: myke og ensfarget ---------- */
+.glass { background: var(--bar); -webkit-backdrop-filter: none; backdrop-filter: none; box-shadow: var(--soft-sm); }
+.brand { background: none; box-shadow: none; padding-left: 4px; }
+.brand-name { font-size: 23px; }
+.brand-mark { color: var(--accent); }
+.round { color: var(--ink-2); }
+.chip-x { background: var(--hair); }
+
+.icon-pill { box-shadow: var(--soft-sm); background: var(--bar); color: var(--ink-2); }
+.deck-actions .icon-pill { background: var(--bar); -webkit-backdrop-filter: none; backdrop-filter: none; }
+.fav-btn {
+  background: var(--paper-tex), var(--paper); color: var(--paper-ink); box-shadow: var(--soft-sm);
+  font-size: 16px; font-weight: 500; padding: 0 8px 0 20px;
+}
+.fav-btn .fav-ic { background: none; width: 32px; height: 32px; }
+.fav-btn svg { width: 21px; height: 21px; }
+.fav-btn[aria-pressed="true"] { background: var(--paper-tex), var(--paper); color: #c4364d; box-shadow: var(--soft-sm); }
+.fav-btn[aria-pressed="true"] .fav-ic { background: none; color: #c4364d; }
+:root[data-theme="dark"] .fav-btn .fav-ic { background: none; }
+.deck-hint { font-size: 15px; }
+.deck-hint::before { display: none; }
+
+.tab-island { background: var(--bar); box-shadow: var(--soft); }
+.tab { font-size: 15px; font-weight: 500; }
+.tab-indicator { background: var(--paper-tex), var(--paper); box-shadow: var(--soft-sm); }
+.tab.active { color: var(--paper-ink); }
+.tab[data-view="favs"].active { color: #c4364d; }
+
+.cta {
+  background: var(--accent); color: var(--accent-ink); font-size: 16.5px;
+  box-shadow: 0 1px 2px rgba(60, 25, 5, 0.2), 0 14px 26px -12px rgba(120, 50, 15, 0.55);
+}
+.cta-icon, :root[data-theme="dark"] .cta-icon { background: rgba(255, 245, 230, 0.18); }
+.sheet-panel .cta { background: var(--paper-ink); color: var(--paper); }
+.sheet-panel .cta.danger-cta { background: var(--danger); color: #fff7ee; }
+.ghost { font-size: 16px; box-shadow: none; background: var(--bar); color: var(--ink); box-shadow: var(--soft-sm); }
+.sheet-panel .ghost { background: rgba(90, 60, 30, 0.07); box-shadow: none; }
+.ghost.danger { color: var(--accent); }
+
+.toast {
+  background: var(--paper-tex), var(--paper); color: var(--paper-ink); box-shadow: var(--soft);
+  font-size: 15.5px;
+}
+.toast button, :root[data-theme="dark"] .toast button { background: rgba(90, 60, 30, 0.1); color: var(--paper-ink); }
+
+/* Skuffer som glir opp: et stort papirark */
+.sheet { background: rgba(25, 15, 8, 0.42); }
+.sheet-panel {
+  background: var(--paper-tex), var(--paper); border-radius: 26px 26px 0 0;
+  box-shadow: 0 -20px 50px -20px rgba(30, 15, 5, 0.5);
+}
+.grabber { background: var(--paper-3); }
+.sheet-head h2, .confirm-body h2 { font-weight: 400; }
+.book-row.current { background: var(--paper-2); box-shadow: none; }
+.menu-group { background: rgba(90, 60, 30, 0.05); box-shadow: none; }
+.menu-ic { background: var(--paper); box-shadow: var(--soft-sm); }
+.menu-text b { font-size: 17px; font-weight: 500; }
+.menu-text small { font-size: 14px; font-style: italic; }
+.edit-words { background: rgba(255, 252, 245, 0.6); box-shadow: inset 0 0 0 1px var(--hair); }
+.confirm-body p, .edit-hint { font-size: 16px; }
+
+/* ---------- Sidene Favoritter og Bibliotek ---------- */
+.page-title { font-weight: 400; letter-spacing: -0.03em; }
+.page-title em, .empty-title em { color: var(--accent); }
+.page-head .eyebrow { font-size: 17px; color: var(--muted); }
+.fav-item .core { padding: 22px 20px 14px 22px; }
+.fav-item blockquote { font-weight: 400; font-size: 1.3rem; }
+.fav-foot { border-top: 1px dashed var(--hair-strong); }
+.fav-foot .icon-pill { background: rgba(90, 60, 30, 0.06); box-shadow: none; }
+.bento { gap: 14px; }
+.stat-num { font-weight: 360; }
+.hint, .fav-empty p, .empty p { font-size: 16px; color: var(--ink-2); }
+.help summary { font-size: 1.2rem; }
+.help ol, .help p { font-size: 16px; }
+.seg { background: var(--bar); box-shadow: var(--soft-sm); }
+.seg button { font-size: 15px; color: var(--muted); }
+.seg button[aria-checked="true"] { background: var(--paper-tex), var(--paper); color: var(--paper-ink); box-shadow: var(--soft-sm); }
+.empty-title { font-weight: 360; }
+.empty .eyebrow { font-size: 17px; }
+
+
+/* ---------- Hent rett fra Kindle ---------- */
+.sync { margin-bottom: 18px; }
+.sync .core { padding: 20px 20px 18px; }
+.sync-title { margin: 0 0 6px; font-family: var(--serif); font-weight: 400; font-size: 1.45rem; letter-spacing: -0.015em; }
+.sync p, .sync ol { margin: 0 0 12px; font-size: 16px; line-height: 1.55; color: var(--ink-2); }
+.sync ol { padding-left: 20px; }
+.sync a:not(.bookmarklet) { color: var(--accent); }
+.sync-actions { display: flex; flex-wrap: wrap; gap: 10px; margin: 4px 0 14px; }
+.bookmarklet {
+  display: inline-flex; align-items: center; gap: 10px; height: 50px; padding: 0 20px 0 16px; border-radius: 999px;
+  background: var(--paper-ink); color: var(--paper); text-decoration: none; font-size: 16px; font-weight: 500;
+  box-shadow: var(--soft-sm); cursor: grab;
+}
+.bookmarklet svg { width: 18px; height: 18px; }
+.sync .ghost { height: 50px; }
+.sync details { margin: 0 0 12px; padding-top: 12px; border-top: 1px dashed var(--hair-strong); }
+.sync summary { cursor: pointer; font-size: 16px; color: var(--ink); }
+.sync details ol { margin-top: 10px; }
+.sync .fine { margin: 0; font-size: 14px; font-style: italic; color: var(--muted); }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: 0.01ms !important; animation-delay: 0ms !important; transition-duration: 0.01ms !important; transition-delay: 0ms !important; }
+  .card .rise, .reveal { opacity: 1; transform: none; filter: none; }
+}

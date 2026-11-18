@@ -1,0 +1,286 @@
+<!doctype html>
+<html lang="no">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Lesebok</title>
+  <meta name="description" content="Kindle-highlightsene dine som en lesebok du blar i.">
+  <meta name="theme-color" content="#2a1f18" id="themeColor">
+  <script>
+    // Velg tema før siden tegnes, så den ikke blinker lyst. Mørkt er standard.
+    (function () {
+      var pref = 'dark';
+      try { pref = localStorage.getItem('kh:theme') || 'dark'; } catch (e) {}
+      var dark = pref === 'dark' || (pref === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches);
+      document.documentElement.dataset.theme = dark ? 'dark' : 'light';
+      document.getElementById('themeColor').content = dark ? '#2a1f18' : '#eadfcd';
+    })();
+  </script>
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Lesebok">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" href="icons/icon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,300..600;1,6..72,300..500&family=Caveat:wght@400..600&display=swap">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body data-view="feed">
+  <!-- Svevende toppøy -->
+  <header class="top-island" id="topIsland">
+    <div class="brand glass" id="brand">
+      <span class="brand-mark">“</span>
+      <h1 class="brand-name" translate="no">Lesebok</h1>
+    </div>
+    <button id="filterChip" class="chip glass press" type="button" hidden>
+      <span class="chip-dot"></span>
+      <span class="chip-label" id="filterLabel"></span>
+      <span class="chip-x" data-icon="close"></span>
+      <span class="sr-only">Vis alle bøker</span>
+    </button>
+    <div class="top-actions" id="feedActions">
+      <button id="booksBtn" class="round glass press" type="button" aria-label="Les fra én bok" data-icon="list"></button>
+      <button id="shuffleBtn" class="round glass press" type="button" aria-label="Bland på nytt" data-icon="shuffle"></button>
+    </div>
+  </header>
+
+  <main>
+    <!-- Les -->
+    <section id="view-feed" class="view active" aria-label="Les">
+      <div class="backdrop" id="backdrop" aria-hidden="true"></div>
+      <div id="feed" class="deck" aria-roledescription="kortstokk">
+        <div id="track" class="track"></div>
+      </div>
+      <div class="deck-actions" id="deckActions" hidden>
+        <span class="deck-hint" aria-hidden="true">sveip til siden for å bla</span>
+        <button class="icon-pill more press" type="button" aria-label="Endre eller slett" data-icon="more"></button>
+        <button class="fav-btn fav press" id="deckFav" type="button" aria-pressed="false" aria-label="Lagre som favoritt">
+          <span class="fav-text">Lagre</span><span class="fav-ic" data-icon="heart"></span>
+        </button>
+      </div>
+      <div id="feedEmpty" class="empty" hidden>
+        <span class="eyebrow">Lesebok</span>
+        <h2 class="empty-title">Ingen sider<br><em>ennå.</em></h2>
+        <p>Importer highlightsene dine fra Kindle. Så blar du gjennom dem én og én, som i en notatbok full av sitater.</p>
+        <div class="empty-actions">
+          <button class="cta press" type="button" data-action="import">
+            <span>Importer fil</span><span class="cta-icon" data-icon="arrowUp"></span>
+          </button>
+          <button class="ghost press" type="button" data-action="sample">Prøv med eksempeldata</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- Favoritter -->
+    <section id="view-favs" class="view" aria-label="Favoritter">
+      <div class="scroll"><div class="page">
+        <header class="page-head">
+          <span class="eyebrow">Samling</span>
+          <h2 class="page-title">Favoritter<sup id="favCount"></sup></h2>
+        </header>
+        <div id="favList" class="fav-list"></div>
+        <div id="favEmpty" class="fav-empty" hidden>
+          <span class="fav-empty-heart" data-icon="heart"></span>
+          <p><em>Ingenting her ennå.</em> Dobbelttrykk på en highlight, eller trykk på hjertet, så havner den i samlingen din.</p>
+        </div>
+      </div></div>
+    </section>
+
+    <!-- Bibliotek -->
+    <section id="view-library" class="view" aria-label="Bibliotek">
+      <div class="scroll"><div class="page">
+        <header class="page-head">
+          <span class="eyebrow">Bibliotek</span>
+          <h2 class="page-title">Din <em>lesebok</em></h2>
+        </header>
+
+        <div class="bento">
+          <div class="shell bento-big"><div class="core">
+            <span class="stat-label">Highlights</span>
+            <b class="stat-num" id="statHl">0</b>
+          </div></div>
+          <div class="shell"><div class="core">
+            <span class="stat-label">Bøker</span>
+            <b class="stat-num sm" id="statBooks">0</b>
+          </div></div>
+          <div class="shell"><div class="core">
+            <span class="stat-label">Favoritter</span>
+            <b class="stat-num sm" id="statFavs">0</b>
+          </div></div>
+        </div>
+
+        <button class="cta wide press" type="button" data-action="import">
+          <span>Importer fil</span><span class="cta-icon" data-icon="arrowUp"></span>
+        </button>
+        <p class="hint">Du kan importere så ofte du vil. Highlights du har fra før blir ikke lagt inn på nytt, favorittene dine blir værende, og highlights du har slettet kommer ikke tilbake.</p>
+
+        <div class="shell sync"><div class="core">
+          <h3 class="sync-title">Hent rett fra Kindle</h3>
+          <p>Henter highlights fra alle Kindle-bøkene du har kjøpt hos Amazon, via Amazons egen notatbokside. Det du har fra før, hoppes over.</p>
+          <ol>
+            <li>Dra knappen under opp til bokmerkelinjen i nettleseren på Macen.</li>
+            <li>Åpne <a href="https://read.amazon.com/notebook" target="_blank" rel="noopener">read.amazon.com/notebook</a> og logg inn hos Amazon.</li>
+            <li>Trykk på bokmerket <i>Hent til Lesebok</i>. Leseboka åpnes, og highlightsene legges inn.</li>
+          </ol>
+          <div class="sync-actions">
+            <a class="bookmarklet" id="bookmarklet" href="#" draggable="true"><span data-icon="quote"></span>Hent til Lesebok</a>
+            <button class="ghost press" type="button" data-action="copy-bookmarklet">Kopier koden</button>
+          </div>
+          <details>
+            <summary>Slik gjør du det på iPhone</summary>
+            <ol>
+              <li>Trykk <i>Kopier koden</i> over.</li>
+              <li>I Safari: åpne en hvilken som helst side, trykk Del-knappen og velg <i>Legg til bokmerke</i>. Kall det <i>Hent til Lesebok</i>.</li>
+              <li>Åpne bokmerkene, trykk <i>Rediger</i>, velg det nye bokmerket og lim inn koden i adressefeltet.</li>
+              <li>Gå til read.amazon.com/notebook, trykk i adressefeltet, skriv <i>Hent til Lesebok</i> og velg bokmerket.</li>
+            </ol>
+          </details>
+          <p class="fine">Bare bøker kjøpt hos Amazon er med, ikke dokumenter du har lagt inn selv. Noen forlag kutter lange highlights. Du logger inn hos Amazon som vanlig, og passordet ditt havner aldri i appen. Bokmerket er knyttet til adressen appen har nå, så lag det på nytt hvis appen flytter.</p>
+        </div></div>
+
+        <div class="shell help"><div class="core">
+          <details open>
+            <summary>Fra Kindle-enheten <span class="sum-tag">My Clippings.txt</span></summary>
+            <ol>
+              <li>Koble Kindlen til datamaskinen med USB.</li>
+              <li>Åpne mappen <code>documents</code> og finn <code>My Clippings.txt</code>.</li>
+              <li>Send filen til iPhonen, for eksempel med AirDrop eller via iCloud Drive, og lagre den i Filer.</li>
+              <li>Trykk «Importer fil» og velg filen.</li>
+            </ol>
+          </details>
+          <details>
+            <summary>Fra Kindle-appen <span class="sum-tag">HTML / CSV</span></summary>
+            <ol>
+              <li>Åpne boka i Kindle-appen og trykk på notatbok-ikonet.</li>
+              <li>Velg «Eksporter notater» og send dem til deg selv på e-post.</li>
+              <li>Lagre vedlegget i Filer, og importer det her.</li>
+            </ol>
+          </details>
+          <details>
+            <summary>Hvor lagres dataene?</summary>
+            <p>Highlightsene dine lagres bare på denne enheten, i nettleseren, og sendes aldri noe sted. For å vise bokomslag sender appen boktittel og forfatter til Open Library, og eventuelt Google Books. Sletter du nettstedsdataene i Safari, forsvinner også highlightsene.</p>
+          </details>
+        </div></div>
+
+        <div class="shell sync backup"><div class="core">
+          <h3 class="sync-title">Sikkerhetskopi</h3>
+          <p>Highlightsene dine lagres bare på denne enheten. Ta en sikkerhetskopi for å flytte dem til telefonen eller en annen nettleser, eller bare for å være trygg.</p>
+          <ol>
+            <li>Trykk <i>Eksporter</i>. På Mac og iPhone kan du sende fila rett med AirDrop.</li>
+            <li>Åpne Leseboka på den andre enheten, gå til Bibliotek og trykk <i>Gjenopprett</i>.</li>
+          </ol>
+          <div class="sync-actions">
+            <button class="bookmarklet press" type="button" data-action="export-backup"><span data-icon="upload"></span>Eksporter</button>
+            <button class="ghost press" type="button" data-action="import">Gjenopprett</button>
+          </div>
+          <p class="fine">Sikkerhetskopien inneholder highlights, favoritter, endrede utsnitt og slettede highlights. Når du gjenoppretter, legges den til det som allerede finnes. Ingenting blir borte.</p>
+        </div></div>
+
+        <div class="theme-pick" role="radiogroup" aria-label="Utseende">
+          <span class="stat-label">Utseende</span>
+          <div class="seg">
+            <button type="button" role="radio" data-theme-pref="dark">Mørk</button>
+            <button type="button" role="radio" data-theme-pref="light">Lys</button>
+            <button type="button" role="radio" data-theme-pref="system">Som systemet</button>
+          </div>
+        </div>
+
+        <div class="lib-secondary">
+          <button class="ghost press" type="button" data-action="restore" id="restoreBtn" hidden></button>
+          <button class="ghost press" type="button" data-action="sample">Last inn eksempeldata</button>
+          <button class="ghost danger press" type="button" data-action="clear">Slett alle data</button>
+        </div>
+      </div></div>
+    </section>
+  </main>
+
+  <!-- Svevende fanemeny -->
+  <nav class="tab-island glass" aria-label="Hovedmeny">
+    <span class="tab-indicator" aria-hidden="true"></span>
+    <button class="tab active" type="button" data-view="feed"><span data-icon="quote"></span><span>Les</span></button>
+    <button class="tab" type="button" data-view="favs"><span data-icon="heart"></span><span>Favoritter</span></button>
+    <button class="tab" type="button" data-view="library"><span data-icon="books"></span><span>Bibliotek</span></button>
+  </nav>
+
+  <div id="sheet" class="sheet" hidden>
+    <div class="sheet-panel" role="dialog" aria-modal="true" aria-labelledby="sheetTitle">
+      <span class="grabber" aria-hidden="true"></span>
+      <div class="sheet-head">
+        <div>
+          <span class="eyebrow">Filter</span>
+          <h2 id="sheetTitle">Les fra én bok</h2>
+        </div>
+        <button class="round press" type="button" data-action="close-sheet" aria-label="Lukk" data-icon="close"></button>
+      </div>
+      <div id="bookList" class="sheet-list"></div>
+    </div>
+  </div>
+
+  <div id="menuSheet" class="sheet" hidden>
+    <div class="sheet-panel menu-panel" role="dialog" aria-modal="true" aria-label="Valg for highlight">
+      <span class="grabber" aria-hidden="true"></span>
+      <div class="menu-head">
+        <p class="menu-preview" id="menuPreview" translate="no"></p>
+        <span class="menu-book" id="menuBook"></span>
+      </div>
+      <div class="menu-group">
+        <button class="menu-row press" type="button" data-menu="edit">
+          <span class="menu-ic" data-icon="scissors"></span>
+          <span class="menu-text"><b>Endre utsnitt</b><small>Velg hvor highlighten skal begynne og slutte</small></span>
+        </button>
+        <button class="menu-row danger press" type="button" data-menu="delete">
+          <span class="menu-ic" data-icon="trash"></span>
+          <span class="menu-text"><b>Slett highlight</b><small>Du kan angre, eller gjenopprette i Bibliotek</small></span>
+        </button>
+      </div>
+      <button class="ghost menu-cancel press" type="button" data-menu="cancel">Avbryt</button>
+    </div>
+  </div>
+
+  <div id="editSheet" class="sheet" hidden>
+    <div class="sheet-panel edit-panel" role="dialog" aria-modal="true" aria-labelledby="editTitle">
+      <span class="grabber" aria-hidden="true"></span>
+      <div class="sheet-head">
+        <div>
+          <span class="eyebrow" id="editBook"></span>
+          <h2 id="editTitle">Endre utsnitt</h2>
+        </div>
+        <button class="round press" type="button" data-edit="cancel" aria-label="Avbryt" data-icon="close"></button>
+      </div>
+      <p class="edit-hint">Trykk først på ordet der highlighten skal begynne, så på ordet der den skal slutte. Originalteksten tas vare på, så du kan alltid tilbakestille.</p>
+      <div class="edit-words" id="editWords" translate="no"></div>
+      <div class="edit-foot">
+        <div class="edit-status"><span id="editStep"></span><span id="editCount"></span></div>
+        <div class="edit-actions">
+          <button class="ghost press" type="button" data-edit="reset">Tilbakestill</button>
+          <button class="cta press" type="button" data-edit="save"><span>Lagre utsnitt</span><span class="cta-icon" data-icon="arrowRight"></span></button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="confirmSheet" class="sheet confirm-sheet" hidden>
+    <div class="sheet-panel confirm-panel" role="alertdialog" aria-modal="true" aria-labelledby="confirmTitle" aria-describedby="confirmText">
+      <span class="grabber" aria-hidden="true"></span>
+      <div class="confirm-body">
+        <span class="confirm-ic" data-icon="trash"></span>
+        <h2 id="confirmTitle"></h2>
+        <p id="confirmText"></p>
+      </div>
+      <div class="confirm-actions">
+        <button class="ghost press" type="button" data-confirm="no">Avbryt</button>
+        <button class="cta danger-cta press" type="button" data-confirm="yes"><span id="confirmYes"></span></button>
+      </div>
+    </div>
+  </div>
+
+  <div id="toast" class="toast" role="status" hidden></div>
+  <input type="file" id="fileInput" accept=".txt,.html,.htm,.csv,text/plain,text/html,text/csv" multiple hidden>
+
+  <script src="parsers.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
