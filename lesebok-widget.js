@@ -46,7 +46,23 @@ async function loadBackup() {
   return data;
 }
 
-// Samme sitat hele dagen, nytt sitat neste dag.
+// Dagens dato som tall (lokal tid), brukt til å velge dagens sitat.
+const todayNum = () => { const n = new Date(); return Math.floor(new Date(n.getFullYear(), n.getMonth(), n.getDate()).getTime() / 86400000); };
+
+// Sitatet du har valgt med «Et annet sitat» huskes resten av dagen.
+const CHOSEN_KEY = 'lesebok-valgt-sitat';
+function chosenToday() {
+  try {
+    if (!Keychain.contains(CHOSEN_KEY)) return null;
+    const c = JSON.parse(Keychain.get(CHOSEN_KEY));
+    return c && c.day === todayNum() ? c.id : null;
+  } catch (e) { return null; }
+}
+function rememberChoice(id) {
+  try { Keychain.set(CHOSEN_KEY, JSON.stringify({ day: todayNum(), id })); } catch (e) { /* ignorer */ }
+}
+
+// Samme sitat hele dagen, nytt sitat neste dag (eller det du har valgt selv i dag).
 function pickForToday(data) {
   let list = (data.highlights || []).filter((h) => h && h.text && h.kind !== 'note');
   const favs = data.favorites || {};
@@ -55,10 +71,11 @@ function pickForToday(data) {
     if (f.length) list = f;
   }
   if (!list.length) return null;
+  const chosen = chosenToday();
+  const picked = chosen && list.find((h) => h.id === chosen);
+  if (picked) return picked;
   list.sort((a, b) => (a.id < b.id ? -1 : 1));
-  const now = new Date();
-  const day = Math.floor(new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime() / 86400000);
-  return list[((day * 2654435761) >>> 0) % list.length];
+  return list[((todayNum() * 2654435761) >>> 0) % list.length];
 }
 
 const clean = (t) => String(t).replace(/^[\s“”"«»„]+|[\s“”"«»]+$/g, '');
@@ -114,10 +131,11 @@ try {
   message(w, 'Kunne ikke lese sikkerhetskopien: ' + e.message);
 }
 
-// Oppdater rett etter midnatt
-const next = new Date();
-next.setHours(24, 0, 30, 0);
-w.refreshAfterDate = next;
+// Oppdater ofte (iPhone bestemmer selv nøyaktig når), så et nytt valg vises raskt og nytt sitat kommer ved midnatt.
+const soon = new Date(Date.now() + 10 * 60 * 1000);
+const midnight = new Date();
+midnight.setHours(24, 0, 30, 0);
+w.refreshAfterDate = soon < midnight ? soon : midnight;
 
 if (config.runsInWidget) {
   Script.setWidget(w);
@@ -131,12 +149,12 @@ function pool(d) {
   let list = ((d && d.highlights) || []).filter((x) => x && x.text && x.kind !== 'note');
   const favs = (d && d.favorites) || {};
   if (onlyFavs) { const f = list.filter((x) => favs[x.id]); if (f.length) list = f; }
-  return list.map((x) => ({ t: clean(x.text), b: x.book || '', a: x.author || '' }));
+  return list.map((x) => ({ id: x.id, t: clean(x.text), b: x.book || '', a: x.author || '' }));
 }
 
 async function showCard(d, today) {
   const all = pool(d);
-  const first = today ? { t: clean(today.text), b: today.book || '', a: today.author || '' } : null;
+  const first = today ? { id: today.id, t: clean(today.text), b: today.book || '', a: today.author || '' } : null;
   const json = JSON.stringify({ first, all }).replace(/</g, '\\u003c');
   const html = `<!doctype html><html lang="no"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
@@ -166,10 +184,20 @@ async function showCard(d, today) {
   document.getElementById('next').onclick = () => {
     if (D.all.length < 2) return;
     let i; do { i = Math.floor(Math.random() * D.all.length); } while (i === last);
-    last = i; set(D.all[i]); document.getElementById('lbl').textContent = 'Et annet sitat fra Leseboka';
+    last = i; set(D.all[i]); document.getElementById('lbl').textContent = 'Dagens sitat (valgt av deg)';
+    location.href = 'lesebok://valgt/' + encodeURIComponent(D.all[i].id);
   };
 </script></body></html>`;
   const wv = new WebView();
+  // Når du bytter sitat, sender kortet en «lesebok://valgt/…»-adresse som vi fanger opp og husker.
+  wv.shouldAllowRequest = (req) => {
+    const u = String(req.url || '');
+    if (u.startsWith('lesebok://valgt/')) {
+      rememberChoice(decodeURIComponent(u.slice('lesebok://valgt/'.length)));
+      return false;
+    }
+    return true;
+  };
   await wv.loadHTML(html);
   await wv.present(true);
 }
