@@ -275,8 +275,8 @@
     const w = W();
     if (rel <= -1) return { x: w * 1.15, y: -24, r: 16, s: 1, o: rel === -1 ? 1 : 0, z: 40 }; // ute til høyre
     if (rel === 0) return { x: 0, y: 0, r: 0, s: 1, o: 1, z: 30 };                              // øverst
-    if (rel === 1) return { x: t * 4, y: 14, r: t * 1.35, s: 0.975, o: 1, z: 20 };
-    if (rel === 2) return { x: -t * 5, y: 26, r: -t * 1.7, s: 0.95, o: 1, z: 10 };
+    if (rel === 1) return { x: t * 2.5, y: 10, r: t * 0.9, s: 0.98, o: 1, z: 20 };
+    if (rel === 2) return { x: -t * 3, y: 18, r: -t * 1.1, s: 0.96, o: 1, z: 10 };
     return { x: 0, y: 26, r: 0, s: 0.93, o: 0, z: 5 };                                           // gjemt bakerst
   }
   const mix = (a, b, f) => ({
@@ -1020,9 +1020,12 @@
     buildFeed();
     updateCounts();
     const books = new Set(highlights.map((h) => h.book)).size;
+    const inFile = (obj.highlights || []).length;
     toast(added
       ? `Gjenopprettet ${plural(added, 'highlight', 'highlights')}. Du har nå ${plural(highlights.length, 'highlight', 'highlights')} fra ${plural(books, 'bok', 'bøker')}.`
-      : 'Alt i sikkerhetskopien fantes fra før.');
+      : inFile
+        ? `Alle ${plural(inFile, 'highlight', 'highlights')} i sikkerhetskopien fantes fra før.`
+        : 'Sikkerhetskopien er tom. Eksporter den fra Leseboka der bøkene dine ligger.');
   }
 
   async function importFiles(files) {
