@@ -21,15 +21,26 @@ const family = config.widgetFamily || 'medium';
 const S = SIZE[family] || SIZE.medium;
 const onlyFavs = /favoritt/i.test(args.widgetParameter || '');
 
-const fm = FileManager.iCloud();
-const dir = fm.documentsDirectory();
-
+// Leter i både iCloud Drive → Scriptable og På min iPhone → Scriptable, og bruker den nyeste fila.
 async function loadBackup() {
-  const files = fm.listContents(dir).filter((n) => /^lesebok.*\.json$/i.test(n));
-  if (!files.length) return null;
-  files.sort((a, b) => fm.modificationDate(fm.joinPath(dir, b)) - fm.modificationDate(fm.joinPath(dir, a)));
-  const path = fm.joinPath(dir, files[0]);
-  if (!fm.isFileDownloaded(path)) await fm.downloadFileFromiCloud(path);
+  const found = [];
+  const places = [];
+  try { places.push(FileManager.iCloud()); } catch (e) { /* iCloud er av */ }
+  places.push(FileManager.local());
+  for (const fm of places) {
+    let dir;
+    try { dir = fm.documentsDirectory(); } catch (e) { continue; }
+    let names = [];
+    try { names = fm.listContents(dir); } catch (e) { continue; }
+    names.filter((n) => /^lesebok.*\.json$/i.test(n)).forEach((n) => {
+      const path = fm.joinPath(dir, n);
+      found.push({ fm, path, date: fm.modificationDate(path) || new Date(0) });
+    });
+  }
+  if (!found.length) return null;
+  found.sort((a, b) => b.date - a.date);
+  const { fm, path } = found[0];
+  if (fm.isFileDownloaded && !fm.isFileDownloaded(path)) await fm.downloadFileFromiCloud(path);
   const data = JSON.parse(fm.readString(path));
   if (!data || data.source !== 'lesebok-backup') return null;
   return data;
@@ -43,8 +54,6 @@ function pickForToday(data) {
     const f = list.filter((h) => favs[h.id]);
     if (f.length) list = f;
   }
-  const fitting = list.filter((h) => h.text.length <= S.max);
-  if (fitting.length >= 3) list = fitting;
   if (!list.length) return null;
   list.sort((a, b) => (a.id < b.id ? -1 : 1));
   const now = new Date();
@@ -64,13 +73,15 @@ function message(w, text) {
 const w = new ListWidget();
 w.backgroundColor = C.paper;
 w.setPadding(16, 18, 14, 18);
-if (APP_URL.startsWith('http')) w.url = APP_URL;
+// Trykk på widgeten åpner Scriptable, som viser hele sitatet på et papirkort (se nederst).
 
+let data = null;
+let h = null;
 try {
-  const data = await loadBackup();
-  const h = data && pickForToday(data);
+  data = await loadBackup();
+  h = data && pickForToday(data);
   if (!data) {
-    message(w, 'Lagre en sikkerhetskopi fra Leseboka i iCloud Drive → Scriptable, så dukker dagens sitat opp her.');
+    message(w, 'Lagre en sikkerhetskopi fra Leseboka i mappen Scriptable (i iCloud Drive eller På min iPhone), så dukker dagens sitat opp her.');
   } else if (!h) {
     message(w, onlyFavs ? 'Ingen favoritter ennå. Lagre noen i Leseboka, og ta en ny sikkerhetskopi.' : 'Fant ingen highlights i sikkerhetskopien.');
   } else {
@@ -108,6 +119,57 @@ const next = new Date();
 next.setHours(24, 0, 30, 0);
 w.refreshAfterDate = next;
 
-if (config.runsInWidget) Script.setWidget(w);
-else await w.presentMedium();
+if (config.runsInWidget) {
+  Script.setWidget(w);
+} else {
+  // Trykk på widgeten (eller kjøring i appen): vis hele sitatet på et papirkort.
+  await showCard(data, h);
+}
 Script.complete();
+
+function pool(d) {
+  let list = ((d && d.highlights) || []).filter((x) => x && x.text && x.kind !== 'note');
+  const favs = (d && d.favorites) || {};
+  if (onlyFavs) { const f = list.filter((x) => favs[x.id]); if (f.length) list = f; }
+  return list.map((x) => ({ t: clean(x.text), b: x.book || '', a: x.author || '' }));
+}
+
+async function showCard(d, today) {
+  const all = pool(d);
+  const first = today ? { t: clean(today.text), b: today.book || '', a: today.author || '' } : null;
+  const json = JSON.stringify({ first, all }).replace(/</g, '\\u003c');
+  const html = `<!doctype html><html lang="no"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<style>
+  html,body{margin:0;height:100%;background:#2a1f18;color:#2f241b;font-family:Georgia,serif;-webkit-text-size-adjust:100%}
+  body{display:flex;flex-direction:column;justify-content:center;padding:calc(env(safe-area-inset-top) + 28px) 26px calc(env(safe-area-inset-bottom) + 28px);box-sizing:border-box}
+  .stack{position:relative;max-width:560px;width:100%;margin:0 auto}
+  .stack::before{content:"";position:absolute;inset:0;border-radius:20px;background:#e3d1b6;transform:rotate(-2.2deg) translate(-4px,10px);box-shadow:0 14px 30px -12px rgba(0,0,0,.6)}
+  .card{position:relative;background:#f3e7d3;border-radius:20px;padding:30px 26px 24px;box-shadow:0 1px 2px rgba(0,0,0,.3),0 20px 40px -16px rgba(0,0,0,.6)}
+  .mark{color:#c06a3e;font-size:56px;line-height:.6;height:26px}
+  .q{font-size:22px;line-height:1.42;margin:0 0 26px;white-space:pre-wrap}
+  .b{font-style:italic;font-size:17px;padding-top:16px;border-top:1px dashed rgba(90,60,30,.25)}
+  .a{color:#8c7660;font-size:15px;margin-top:3px}
+  .lbl{color:#ad987f;font-style:italic;font-size:15px;text-align:center;margin:0 0 14px}
+  button{display:block;margin:26px auto 0;font:500 17px Georgia,serif;color:#2f241b;background:#f3e7d3;border:0;border-radius:999px;padding:14px 26px;box-shadow:0 10px 22px -10px rgba(0,0,0,.6)}
+  .empty{color:#f2e6d4;text-align:center;font-size:18px;line-height:1.5}
+</style></head><body>
+<p class="lbl" id="lbl">Dagens sitat</p>
+<div class="stack" id="stack"><div class="card"><div class="mark">“</div><p class="q" id="q"></p><div class="b" id="b"></div><div class="a" id="a"></div></div></div>
+<button id="next" type="button">Et annet sitat</button>
+<script>
+  const D = ${json};
+  const set = (x) => { document.getElementById('q').textContent = x.t + '”'; document.getElementById('b').textContent = x.b; document.getElementById('a').textContent = x.a; };
+  if (D.first) set(D.first);
+  else { document.body.innerHTML = '<p class="empty">Fant ingen sitater. Lagre en sikkerhetskopi fra Leseboka i mappen Scriptable.</p>'; }
+  let last = -1;
+  document.getElementById('next').onclick = () => {
+    if (D.all.length < 2) return;
+    let i; do { i = Math.floor(Math.random() * D.all.length); } while (i === last);
+    last = i; set(D.all[i]); document.getElementById('lbl').textContent = 'Et annet sitat fra Leseboka';
+  };
+</script></body></html>`;
+  const wv = new WebView();
+  await wv.loadHTML(html);
+  await wv.present(true);
+}

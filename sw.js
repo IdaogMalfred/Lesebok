@@ -1,7 +1,7 @@
 // Service worker for v2: virker uten nett etter første besøk.
 // Cache-navnene har eget prefiks, så v1 og v2 ikke sletter hverandres filer.
 const PREFIX = 'kh2-';
-const CACHE = PREFIX + 'v33';
+const CACHE = PREFIX + 'v37';
 const FONTS = PREFIX + 'fonts';
 const COVERS = PREFIX + 'covers';
 const COVER_HOSTS = ['covers.openlibrary.org', 'books.google.com', 'books.googleusercontent.com'];
@@ -11,7 +11,12 @@ const ASSETS = [
 ];
 
 self.addEventListener('install', (e) => {
-  e.waitUntil(caches.open(CACHE).then((c) => c.addAll(ASSETS)).then(() => self.skipWaiting()));
+  // cache: 'reload' går forbi nettleserens egen hurtigbuffer, så vi lagrer den nyeste versjonen.
+  e.waitUntil(
+    caches.open(CACHE)
+      .then((c) => c.addAll(ASSETS.map((u) => new Request(u, { cache: 'reload' }))))
+      .then(() => self.skipWaiting())
+  );
 });
 
 self.addEventListener('activate', (e) => {
@@ -44,13 +49,22 @@ self.addEventListener('fetch', (e) => {
   }
 
   if (url.origin !== location.origin) return;
+  // Appens egne filer: nyeste versjon fra nettet når du har nett (så oppdateringer kommer med en gang),
+  // lagret kopi når du er uten nett eller nettet er tregt.
   e.respondWith(
     caches.open(CACHE).then(async (cache) => {
+      const fromNet = fetch(req, { cache: 'no-cache' }).then((res) => {
+        if (res.ok) cache.put(req, res.clone());
+        return res;
+      });
+      fromNet.catch(() => {}); /* unngå støy i loggen når vi er uten nett */
+      const timeout = new Promise((resolve) => setTimeout(resolve, 4000));
+      try {
+        const res = await Promise.race([fromNet, timeout]);
+        if (res) return res;
+      } catch (err) { /* uten nett */ }
       const cached = await cache.match(req, { ignoreSearch: true });
-      const network = fetch(req)
-        .then((res) => { if (res.ok) cache.put(req, res.clone()); return res; })
-        .catch(() => cached);
-      return cached || network;
+      return cached || fromNet;
     })
   );
 });
